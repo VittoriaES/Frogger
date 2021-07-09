@@ -1,4 +1,3 @@
-
 #title {
     text-align: center;
     font-size: x-large;
@@ -8,6 +7,10 @@
     margin-bottom: 20
 }
 
-#frogger {
-    
-}
+
+@font-face {
+    font-family: PixelFont;
+    src: url("assets/font04b_30/04B_30__.TTF");
+    font-weight: 400;
+    font-weight: normal;
+    }

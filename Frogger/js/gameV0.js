@@ -22,9 +22,16 @@ let game = new Phaser.Game(config);
 
 let titleScreen, playButton;
 let frog, mumFrog;
+let nbrTileMumFrog = Phaser.Math.Between(0, 29);
 let car = [];
 let down, up, left, right;
 let tweenHeart;
+let onWelcomeScreen = true;
+let counter;
+let timerText;
+let scoreText, scoreTextFinal;
+let savedFrog = 0;
+let jumpSound, trafficSound, smashedSound;
 
 function init() {
    
@@ -41,6 +48,10 @@ function preload() {
     this.load.image("deadfrog", "./assets/images/deadFrog.png");
     this.load.image("titlescreen", "./assets/images/TitleScreen.png");
     this.load.image("playbutton", "./assets/images/playButton.webp");
+
+    this.load.audio("jump", "./assets/audio/coaac.wav");
+    this.load.audio("smashed", "./assets/audio/smashed.wav");
+    this.load.audio("traffic", "./assets/audio/trafic.wav");
 }
 
 function create() {
@@ -55,9 +66,11 @@ function create() {
     backgroundImage.setOrigin(0, 0);
 
     frog = this.add.image(241, 296, "frog");
-    let nbrTileMumFrog = Phaser.Math.Between(0, 29);
+    nbrTileMumFrog = Phaser.Math.Between(0, 29);
     mumFrog = this.add.image(nbrTileMumFrog * 16, 0, "mumfrog");
     mumFrog.setOrigin(0, 0)
+    deadfrog = this.add.image(-100, -100, "deadfrog");
+
 
     for (let j = 0; j < 3; j++){
         for (let i = 0; i < 10; i++){
@@ -95,6 +108,25 @@ function create() {
         paused: true
         });
 
+    timerText = this.add.text(448, 288, "", {
+        fontFamily: "PixelFont",
+        fontSize: 16,
+        color: "#fff200"
+        });
+        
+    countdownTimer = this.time.addEvent({
+        delay: 1000,
+        callback: countdown, 
+        callbackScope: this, 
+        repeat: -1,
+        paused: false
+        });
+
+    scoreText = this.add.text(8, 290, "Frogs saved: " + savedFrog, {
+        fontFamily: "PixelFont",
+        fontSize: 13,
+        color: "#fff200"
+        });
 
     titleScreen = this.add.image(0, 0, "titlescreen").setInteractive();
     titleScreen.setOrigin(0, 0);
@@ -103,31 +135,50 @@ function create() {
     playButton.on('pointerdown', startGame);
     playButton.setScale(0.05);
 
+    scoreTextFinal = this.add.text(80, 10, "", {
+        fontFamily: "PixelFont",
+        fontSize: 16,
+        color: "#fff200"
+        });
+
+    jumpSound = this.sound.add("jump");
+    smashedSound = this.sound.add("smashed"); 
+    trafficSound = this.sound.add("traffic"); 
+
 }
 
 function update() {
     // frog movement
-    if (Phaser.Input.Keyboard.JustDown(down) && frog.y < 304){
-        frog.y += 16;
-        frog.setAngle(180);
-    }
-    if (Phaser.Input.Keyboard.JustDown(up) && frog.y > 16){
-        frog.y -= 16;
-        frog.setAngle(0);
-    }
-    if (Phaser.Input.Keyboard.JustDown(left) && frog.x > 16){
-        frog.x -= 16;
-        frog.setAngle(-90);
-    }
-    if (Phaser.Input.Keyboard.JustDown(right) && frog.x < 464){
-        frog.x += 16;
-        frog.setAngle(90);
+    if (!onWelcomeScreen){
+        if (Phaser.Input.Keyboard.JustDown(down) && frog.y < 304){
+            frog.y += 16;
+            frog.setAngle(180);
+            jumpSound.play();
+        }
+        if (Phaser.Input.Keyboard.JustDown(up) && frog.y > 16){
+            frog.y -= 16;
+            frog.setAngle(0);
+            jumpSound.play();
+        }
+        if (Phaser.Input.Keyboard.JustDown(left) && frog.x > 16){
+            frog.x -= 16;
+            frog.setAngle(-90);
+            jumpSound.play();
+        }
+        if (Phaser.Input.Keyboard.JustDown(right) && frog.x < 464){
+            frog.x += 16;
+            frog.setAngle(90);
+            jumpSound.play();
+        }
     }
 
     // collision with mumFrog
     if(Phaser.Geom.Intersects.RectangleToRectangle(frog.getBounds(),mumFrog.getBounds())) {
+        savedFrog += 1;
+        scoreText.text = "Frogs saved: " + savedFrog;
         frog.x = -100;
         tweenHeart.play();
+        setTimeout(newFrog, 1000);
     }
 
     // car movement + collision with cars
@@ -140,13 +191,53 @@ function update() {
         }
 
         if(Phaser.Geom.Intersects.RectangleToRectangle(frog.getBounds(),car[i].getBounds())) {
-            deadfrog = this.add.image(frog.x, frog.y, "deadfrog");
+            savedFrog -= 1;
+            scoreText.text = "Frogs saved: " + savedFrog;
+            deadfrog.setPosition(frog.x, frog.y);
             frog.x = -100;
+            setTimeout(newFrog, 3000);
+            smashedSound.play();
         }
     }
+
 }
 
 function startGame() {
     titleScreen.setVisible(false);
     playButton.setVisible(false);
+    onWelcomeScreen = false;
+    countdownTimer.paused = false;
+    savedFrog = 0;
+    counter = 90;
+    trafficSound.play({
+        loop: true
+        });
    } 
+
+function countdown(){
+    counter -= 1;
+    timerText.text = counter;
+    if (counter == 0){
+        gameOver();
+    }
+}
+
+function newFrog(){
+    nbrTileMumFrog = Phaser.Math.Between(0, 29);
+    mumFrog.setPosition(nbrTileMumFrog * 16, 0);
+    deadfrog.setPosition(-100, -100);
+    frog.setPosition(241, 296);
+    frog.setAngle(0);
+}
+
+function gameOver(){
+    countdownTimer.paused = true;
+    titleScreen.setVisible(true);
+    playButton.setVisible(true);
+    if (savedFrog >= 0){
+        scoreTextFinal.text = "You have saved " + savedFrog +  " frog(s)";
+    }
+    else{
+        scoreTextFinal.text = "You have murdered " + -savedFrog +  " frog(s)";
+    }
+}

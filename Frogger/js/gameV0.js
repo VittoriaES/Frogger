@@ -21,6 +21,7 @@ let config = {
 let game = new Phaser.Game(config);
 
 let frog, mumFrog;
+let car = [];
 let down, up, left, right;
 let tweenHeart;
 
@@ -33,6 +34,8 @@ function preload() {
     this.load.image("frog", "./assets/images/Frog.png");
     this.load.image("mumfrog", "./assets/images/MumFrog.png");
     this.load.image("heart", "./assets/images/heart.png");
+    this.load.image("car", "./assets/images/car.png");
+    this.load.image("deadfrog", "./assets/images/deadFrog.png");
 }
 
 function create() {
@@ -45,18 +48,23 @@ function create() {
     backgroundImage = this.add.image(0, 0, "background");
     backgroundImage.setOrigin(0, 0);
 
-    frog = this.add.image(240, 300, "frog");
-
-    mumFrog = this.add.image(Phaser.Math.Between(0, 460), 0, "mumfrog");
+    frog = this.add.image(241, 296, "frog");
+    let nbrTileMumFrog = Phaser.Math.Between(0, 29);
+    mumFrog = this.add.image(nbrTileMumFrog * 16, 0, "mumfrog");
     mumFrog.setOrigin(0, 0)
+
+    for (let i = 0; i < 10; i++){
+        car[i] = this.physics.add.image(-50 + i * 50, 160, "car");
+        car[i].setVelocity(100, 0); 
+    }
 
     let heart = this.add.image(240, 160, "heart");
     heart.setScale(0.0);
     tweenHeart = this.tweens.add({
         targets: heart,
-        scale: 2,
+        scale: 4.0,
         alpha: 1.0,
-        duration: 1000,
+        duration: 5000,
         ease: 'Linear',
         yoyo: false,
         loop: 0,
@@ -66,6 +74,7 @@ function create() {
 }
 
 function update() {
+    // frog movement
     if (Phaser.Input.Keyboard.JustDown(down) && frog.y < 304){
         frog.y += 16;
         frog.setAngle(180);
@@ -83,8 +92,24 @@ function update() {
         frog.setAngle(90);
     }
 
+    // collision with mumFrog
     if(Phaser.Geom.Intersects.RectangleToRectangle(frog.getBounds(),mumFrog.getBounds())) {
         frog.x = -100;
         tweenHeart.play();
+    }
+
+    // car movement
+    for (let i = 0; i < 10; i++){
+        if (car[i].x > 500){
+            car[i].x = -50;
+        }
+    }
+
+    // collision with cars
+    for (let i = 0; i < 10; i++){
+        if(Phaser.Geom.Intersects.RectangleToRectangle(frog.getBounds(),car[i].getBounds())) {
+            deadfrog = this.add.image(frog.x, frog.y, "deadfrog");
+            frog.x = -100;
+        }
     }
 }
